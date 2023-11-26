@@ -119,7 +119,8 @@ class DeFT():
     
     def likelihood_update():
         zeta_0 = None #TODO
+        tau = None #TODO
         gamma = None #TODO
         # usually 1/(ζ**2 * τ) = 50 
-        self.likelihood = likelihood_update(self.likelihood,zeta_0,gamma).update()
+        self.likelihood = likelihood_update(likelihood = self.likelihood,zeta_0,gamma,tau,sigma,image,kernel).update()
         return likelihood_disrtribution

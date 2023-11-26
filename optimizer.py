@@ -25,7 +25,8 @@ class Optimizer():
         '''
         self.delta_f = None
         self.delta_L = None
-        self.delta_Psi = None
+        self.delta_Psi_x = None
+        self.delta_Psi_y = None
         
         self.zeta_0 = None #TODO
         self.tau = None #TODO
@@ -70,6 +71,8 @@ class Optimizer():
     
     def update_Psi(self):
         mask = 1*smooth_region(self.L, self.kernel_size, self.threshold_smooth_region)
+        new_Psi_x = np.zeros_like(self.Psi_x)
+        new_Psi_y = np.zeros_like(self.Psi_y)
         for i in range(self.I.shape[0]):
             for j in range(self.I.shape[1]):
                 for k in range(3):
@@ -77,9 +80,14 @@ class Optimizer():
                     fun_y = lambda x: self.lambda_1*np.abs(Phi_func(x, self.threshold_Phi_func))+self.lambda_2*mask[i, j]*(x-self.I_grad_y[i, j, k])**2+self.gamma*(x-compute_gradient(self.L, 'y')[i, j, k])**2
                     objective_x = lambda x: fun_x(x)
                     objective_y = lambda x: fun_y(x)
-                   
-                    self.Psi_x[i, j, k] = minimize(objective_x, self.Psi_x[i, j, k]).x[0]
-                    self.Psi_y[i, j, k] = minimize(objective_y, self.Psi_y[i, j, k]).x[0]
+
+                    new_Psi_x[i, j, k] = minimize(objective_x, self.Psi_x[i, j, k]).x[0]
+                    new_Psi_y[i, j, k] = minimize(objective_y, self.Psi_y[i, j, k]).x[0]
+        self.delta_Psi_x = new_Psi_x - self.Psi_x
+        self.delta_Psi_y = new_Psi_y - self.Psi_y
+
+        self.Psi_x = new_Psi_x
+        self.Psi_y = new_Psi_y
 
     def update_L(self):
         gradients = ['0', 'x','y','xx','xy','yy']
@@ -129,7 +137,7 @@ class Optimizer():
                 # Update Ψ and compute L
                 self.update_Psi()
                 self.update_L()
-                if  np.linalg.norm(self.delta_L) < 1e-5 and np.linalg.norm(self.delta_Psi) < 1e-5:
+                if  np.linalg.norm(self.delta_L) < 1e-5 and np.linalg.norm(self.delta_Psi_x)+np.linalg.norm(self.delta_Psi_y)< 1e-5:
                     break
             # Update f
             self.update_f()

@@ -3,7 +3,7 @@ import cv2
 import scipy
 from scipy.stats import multivariate_normal, norm 
 
-from optimization import optimizer
+from optimizer import optimizer
 from utils import compute_gradient
 from collections import defaultdict
 from sklearn.mixture import GaussianMixture
@@ -182,21 +182,12 @@ class DeFT():
     ##    pass
     
     def train(I,B,F1,F2):
-        '''
-        Hyperparameters
-        usually 1/(ζ**2 * τ) = 50 
-        '''
-        zeta_0 = None #TODO
-        tau = None #TODO
-        gamma = None #TODO
-        
+
+
         prior_update(I,B,F1,F2) # -> HOW?
         # optimizer
-        deft_optimizer = optimizer(likelihood = self.likelihood,zeta_0,gamma,tau,sigma,image,kernel)
-        self.likelihood = deft_optimizer.likelihood_update()
-        self.kernel = deft_optimizaer.kernel_update()
-        
-        return        
+        self.likelihood, self.kernel = optimizer.optimize(self.likelihood,self.image,sigma,max_iterations=100)
+        return
 
     def prior_update():
         prior_K1()

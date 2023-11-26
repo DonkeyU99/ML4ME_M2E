@@ -1,10 +1,12 @@
 import numpy as np
 import cv2
 import scipy
-from scipy.stats import multivariate_normal
+from scipy.stats import multivariate_normal, norm 
 
 from optimization import optimizer
 from utils import compute_gradient
+from collections import defaultdict
+from sklearn.mixture import GaussianMixture
 
 class DeFT():
     def __init__(self):
@@ -26,7 +28,7 @@ class DeFT():
         '''
 
         if (prior_type == "uniform"):
-            log_proba = np.sum(- tau * np.full(kernel_size * kernel_size, params['uniform_density']))
+            log_proba = np.sum(params['uniform_density'] * (-tau) * kernel)
         
         if (prior_type == "gaussian"):
             log_proba = 0
@@ -48,7 +50,7 @@ class DeFT():
         '''
 
         if (prior_type == "uniform"):
-            log_proba = np.sum(- tau * np.full(kernel_size * kernel_size, params['uniform_density']))
+            log_proba = np.sum(params['uniform_density'] * (-tau) * kernel)
         
         if (prior_type == "gaussian"):
             log_proba = 0

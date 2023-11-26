@@ -8,16 +8,17 @@ from utils import compute_gradient
 from collections import defaultdict
 from sklearn.mixture import GaussianMixture
 from prior.kernel_prior import Kernel_Prior
+from prior.local_prior import Local_Prior
+from prior.likelihood_blur import Blur_Likelihood
+from prior.global_prior import Prior_G_Fixed
 
 class DeFT():
-    def __init__(self):
-        self.prior_K1 = Kernel_Prior((3,3),'uniform')
-        self.prior_K2= Kernel_Prior((3,3),'uniform')
-        self.prior3 = None
-        self.prior4 = None
-        self.likelihood = None
-
-        self.kernel_sizes = 2
+    def __init__(self,k_size=(3,3)):
+        self.prior_K1 = Kernel_Prior(k_size,'uniform')
+        self.prior_K2= Kernel_Prior(k_size,'uniform')
+        self.local_prior = Local_Prior(k_size,'RGB')
+        self.global_prior = Prior_G_Fixed()
+        self.likelihood = Blur_Likelihood()
 
     ##def bayesian_update_K1():
     ##    pass
@@ -42,19 +43,7 @@ class DeFT():
     
     #     return np.sqrt((s2 - s**2 / ns) / ns)
 
-    def likelihood_blur(noise,sigma=1.):
 
-      sigma_1 = np.sqrt(2)*sigma
-      sigma_2 = 2*sigma
-
-      log_likelihood = 0
-      for i in ('x','y'):
-          log_likelihood += np.sum(multivariate_normal.logpdf(compute_gradient(noise,i).flatten(), mean=0, cov=sigma_1))  #allow_singular=False
-              
-      for i in ('xx','xy','yy'):
-          log_likelihood += np.sum(multivariate_normal.logpdf(compute_gradient(noise,i).flatten(), mean=0, cov=sigma_2))
-          
-      return log_likelihood
     
     ##def bayesian_inference():
     ##    pass

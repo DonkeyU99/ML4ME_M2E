@@ -3,6 +3,7 @@ import numpy.fft as fft
 from utils import compute_gradient, Phi_func
 import l1ls as L
 from scipy.optimize import minimize
+from local_prior import smooth_region
 
 class Optimizer():
     def __init__(self, image, kernel_size, sigma, max_iterations = 15):
@@ -65,12 +66,16 @@ class Optimizer():
                 for k in range(3):
                     fun_x = lambda x: self.lambda_1*np.abs(Phi_func(x, self.threshold_Phi_func))+self.lambda_2*mask[i, j]*(x-self.I_grad_x[i, j, k])**2+self.gamma*(x-compute_gradient(self.L, 'x')[i, j, k])**2
                     fun_y = lambda x: self.lambda_1*np.abs(Phi_func(x, self.threshold_Phi_func))+self.lambda_2*mask[i, j]*(x-self.I_grad_y[i, j, k])**2+self.gamma*(x-compute_gradient(self.L, 'y')[i, j, k])**2
-                    self.Psi_x[i, j, k] = minimize(fun_x, self.Psi_x[i, j, k])
-                    self.Psi_y[i, j, k] = minimize(fun_y, self.Psi_y[i, j, k])
-      
+                    objective_x = lambda x: fun_x(x)
+                    objective_y = lambda x: fun_y(x)
+                   
+                    self.Psi_x[i, j, k] = minimize(objective_x, self.Psi_x[i, j, k]).x[0]
+                    self.Psi_y[i, j, k] = minimize(objective_y, self.Psi_y[i, j, k]).x[0]
+
     def update_L(self):
         gradients = ['x','y','xx','xy','yy']
         gradient_filters = self.gradient_filter(gradients)
+
         
         grad_x = self.gradient_filter('x')
         grad_y = self.gradient_filter('y')

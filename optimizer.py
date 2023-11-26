@@ -55,7 +55,7 @@ class Optimizer():
             filter_yy = [[1, 2, 1], [-2, -4, -2], [1, 2, 1]]
             fft_output = fft(filter_yy)
         
-    return fft_output 
+        return fft_output 
 
     
     def update_Psi(self):
@@ -101,16 +101,16 @@ class Optimizer():
         while iteration < self.max_iterations:
           # Inner loop to optimize L
             while True:
-              # Update Ψ and compute L
-              self.update_Psi()
-              self.update_L()
-              if  np.linalg.norm(self.delta_L) < 1e-5 and np.linalg.norm(self.delta_Psi) < 1e-5:
+                # Update Ψ and compute L
+                self.update_Psi()
+                self.update_L()
+                if  np.linalg.norm(self.delta_L) < 1e-5 and np.linalg.norm(self.delta_Psi) < 1e-5:
                   break
-          # Update f
-          self.update_f()
-          if np.linalg.norm(self.delta_f) < 1e-5:
-              break
-              iteration += 1
-              self.gamma *= 2
+                # Update f
+                self.update_f()
+                if np.linalg.norm(self.delta_f) < 1e-5:
+                    break
+                iteration += 1
+                self.gamma *= 2
         # Return L and f after optimization
         return self.L, self.f

@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-def compute_gradient(source, ddepth = cv2.CV_64F, type='x'):
+def compute_gradient(source, type='x', ddepth = cv2.CV_64F):
     if(type == 'x'):
         return cv2.Sobel(source,ddepth,dx=1,dy=0)
     if(type == 'xx'):

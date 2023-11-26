@@ -4,7 +4,7 @@ from utils import compute_gradient, psf2otf
 import l1ls as L
 
 class Optimizer():
-  def __init__(self, kernel, image, sigma, max_iterations = 100):
+  def __init__(self, kernel, image, sigma, max_iterations = 15):
     self.I = image
     
     self.f = kernel
@@ -21,7 +21,7 @@ class Optimizer():
     
     self.zeta_0 = None #TODO
     self.tau = None #TODO
-    self.gamma = None #TODO
+    self.gamma = 2 #TODO
   
     # self.lambda_1 = 1/tau
     # self.lambda_2 = 1/(sigma**2*tau)
@@ -78,8 +78,7 @@ class Optimizer():
       self.update_f()
       if np.linalg.norm(self.delta_f) < 1e-5:
         break
-
         iteration += 1
-        
+        self.gamma *= 2
     # Return L and f after optimization
     return self.L, self.f

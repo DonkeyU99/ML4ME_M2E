@@ -1,5 +1,6 @@
 import numpy as np
 from loader.likelihood_update import likelihood_update
+from scipy.stats import multivariate_normal
 import cv2
 import scipy
 

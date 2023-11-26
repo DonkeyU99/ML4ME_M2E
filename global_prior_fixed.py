@@ -8,5 +8,5 @@ def prior_global(img, threshold, k = 2.7, a = 6.1e-4, b = 5):
 
     grad_magnitude = np.sqrt(grad_x**2 + grad_y**2)
 
-    prob = Phi_func(img, threshold, k, a, b)
+    prob = Phi_func(grad_magnitude, threshold, k, a, b)
     return np.sum(prob)

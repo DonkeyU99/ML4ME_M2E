@@ -26,7 +26,7 @@ conda activate ml4me
   - deactivate : `conda deactivate`
 
 - 새로 라이브러리 설치했을 경우
-  `conda list --export > ml4me.yml`로 업데이트
+  `conda list --export > ml4me.yaml`로 업데이트
 
 ### python 환경 구축
 

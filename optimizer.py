@@ -29,8 +29,8 @@ class Optimizer():
         self.tau = None #TODO
         self.gamma = 2 #TODO
       
-        self.lambda_1 = 1/tau
-        self.lambda_2 = 1/(sigma**2*tau)
+        self.lambda_1 = 1/self.tau
+        self.lambda_2 = 1/(sigma**2*self.tau)
         
     def omega(self, q):
         return 1/((self.zeta_0**2)*self.tau*(2**q))
@@ -40,26 +40,22 @@ class Optimizer():
 
     def gradient_filter(self, type = "x"):
         if (type == "x"):
-            filter_x = [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]
-            fft_output = fft(filter_x)
+            filter = [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]
+            
 
         if (type == "y"):
-            filter_y = [[-1, -2, -1], [0, 0, 0], [1, 2, 1]]
-            fft_output = fft(filter_y)
+            filter = [[-1, -2, -1], [0, 0, 0], [1, 2, 1]]
 
         if (type == "xy"):
-            filter_xy = [[1, 0, -1], [0, 0, 0], [-1, 0, 1]]
-            fft_output = fft(filter_xy)
+            filter = [[1, 0, -1], [0, 0, 0], [-1, 0, 1]]
 
         if (type == "xx"):
-            filter_xx = [[1, -2, 1], [2, -4, 2], [1, -2, 1]]
-            fft_output = fft(filter_xx)
+            filter = [[1, -2, 1], [2, -4, 2], [1, -2, 1]]
 
         if (type == "yy"):
-            filter_yy = [[1, 2, 1], [-2, -4, -2], [1, 2, 1]]
-            fft_output = fft(filter_yy)
+            filter = [[1, 2, 1], [-2, -4, -2], [1, 2, 1]]
         
-        return fft_output 
+        return filter 
 
     
     def update_Psi(self):
@@ -75,14 +71,13 @@ class Optimizer():
     def update_L(self):
         gradients = ['x','y','xx','xy','yy']
         gradient_filters = self.gradient_filter(gradients)
-        self.Psi = [compute_gradient(self.L, type='x'),compute_gradient(self.L, type='y')]
         
         grad_x = self.gradient_filter('x')
         grad_y = self.gradient_filter('y')
 
-        Delta = np.sum([self.omega(var)for var in gradients]*self.conj_fft(gradient_filters)*gradient_filters)     # q=1 for x y, q=2 for xx xy yy
+        Delta = np.sum([self.omega(var)for var in gradients]*self.conj_fft(gradient_filters)*fft(gradient_filters))     # q=1 for x y, q=2 for xx xy yy
 
-        numer = np.sum(self.conj_fft(self.f)*fft(self.I)*Delta + self.gamma*self.conj_fft(grad_x)*fft(self.Psi[0]) + self.gamma*self.conj_fft(grad_y)*fft(self.Psi[1]) )
+        numer = np.sum(self.conj_fft(self.f)*fft(self.I)*Delta + self.gamma*self.conj_fft(grad_x)*fft(self.Psi_x) + self.gamma*self.conj_fft(grad_y)*fft(self.Psi_y))
         denom = np.sum(self.conj_fft(self.f)*fft(self.f)*Delta + self.gamma*self.conj_fft(grad_x)*fft(grad_x) + self.gamma*self.conj_fft(grad_y)*fft(grad_y))
         new_L = np.fft.ifft(numer/denom)
         
@@ -97,7 +92,7 @@ class Optimizer():
             C = np.kron(C, circulant(f[:, 0]))
             
             # Use view_as_windows to create overlapping patches of the input image
-            patches = view_as_windows(compute_gradient(self.L,type=var), (len(f), len(f)), step=1).reshape(-1, len(f)**2)
+            patches = view_as_windows(compute_gradient(self.L,type=var), (len(self.f), len(self.f)), step=1).reshape(-1, len(self.f)**2)
             
             A += self.omega(var)*patches
             

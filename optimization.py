@@ -5,10 +5,9 @@ from utils import psf2otf
 class optimizer():
   def __init__(self, likelihood, zeta_0, gamma, tau, sigma, image, kernel):
     self.new_L = None
-    self.new_filter = None
-    self.lambda_1 = 1/tau
-    self.lambda_2 = 1/(sigma**2*tau)
-    self.omega = None
+    self.lambda_1 = 1/tau;
+    self.lambda_2 = 1/(sigma**2*tau);
+    self.omega = None;
 
   def omega(q):
     return 1/((zeta_0**2)*tau*(2**q))

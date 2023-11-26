@@ -1,15 +1,17 @@
 import numpy as np
 import numpy.fft as fft
-from utils import compute_gradient, psf2otf
+from utils import compute_gradient, Phi_func
 import l1ls as L
 
 class Optimizer():
-    def __init__(self, kernel, image, sigma, max_iterations = 15):
+    def __init__(self, image, kernel_size, sigma, max_iterations = 15):
         self.I = image
-        
-        self.f = kernel
-        self.L = None
-        self.Psi = None
+
+        self.f = np.diag(np.full(kernel_size, 1))
+        # initialize L, psi_X, psi_y
+        self.L = image
+        self.Psi_x = compute_gradient(self.L, 'x')
+        self.Psi_y = compute_gradient(self.L, type='y')
         
         '''
         Hyperparameters
@@ -23,22 +25,41 @@ class Optimizer():
         self.tau = None #TODO
         self.gamma = 2 #TODO
       
-        # self.lambda_1 = 1/tau
-        # self.lambda_2 = 1/(sigma**2*tau)
+        self.lambda_1 = 1/tau
+        self.lambda_2 = 1/(sigma**2*tau)
         
-    def omega(self, var):
-        q = len(var)
+    def omega(self, q):
         return 1/((self.zeta_0**2)*self.tau*(2**q))
-        
+
     def conj_fft(self, array): # conj(FFT) operator
         return np.conj(np.fft.fft(array))
-    
 
-    def gradient_filter(self, type):
-        #TODO
-      
+    def gradient_filter(self, type = "x"):
+        if (type == "x"):
+            filter_x = [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]
+            fft_output = fft(filter_x)
+
+        if (type == "y"):
+            filter_y = [[-1, -2, -1], [0, 0, 0], [1, 2, 1]]
+            fft_output = fft(filter_y)
+
+        if (type == "xy"):
+            filter_xy = [[1, 0, -1], [0, 0, 0], [-1, 0, 1]]
+            fft_output = fft(filter_xy)
+
+        if (type == "xx"):
+            filter_xx = [[1, -2, 1], [2, -4, 2], [1, -2, 1]]
+            fft_output = fft(filter_xx)
+
+        if (type == "yy"):
+            filter_yy = [[1, 2, 1], [-2, -4, -2], [1, 2, 1]]
+            fft_output = fft(filter_yy)
+        
+    return fft_output 
+
+    
     def update_Psi(self):
-        # TODO
+        energy_x = self.lambda_1*np.abs(Phi_func(self.Psi_x)) + self.lambda_2*
       
     def update_L(self):
         gradients = ['x','y','xx','xy','yy']
@@ -59,7 +80,7 @@ class Optimizer():
     
     def update_f(self):  
         gradients = ['x','y','xx','xy','yy']
-        A = np.array()
+        A = np.array([])
         for var in gradients:
             C = circulant(f[0])
             C = np.kron(C, circulant(f[:, 0]))

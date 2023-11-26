@@ -29,7 +29,7 @@ class Kernel_Prior():
         
         self.params = params
 
-    def predict_prob_K1(self,inf_kernel,tau = 1):
+    def predict_prob_K(self,inf_kernel,tau = 1):
         '''
         input: params = output of prior_k , input 
         output: log pdf of kernel !! kernel output needed? -> probability 만 필요할듯
@@ -44,7 +44,7 @@ class Kernel_Prior():
             for i in range(inf_kernel.shape[0]):
                 for j in range(inf_kernel.shape[1]):
                     log_proba -= norm.pdf(inf_kernel[i, j], self.params['mean'], self.params['variance']) * tau
-        if (self.prior_type == "gaussian_mixture"):
+        if (self.prior_type == "gm"):
             log_proba = 0
             for i in range(inf_kernel.shape[0]):
                 for j in range(inf_kernel.shape[1]):

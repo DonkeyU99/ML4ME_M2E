@@ -4,6 +4,7 @@ from utils import compute_gradient, Phi_func
 import l1ls as L
 from scipy.optimize import minimize
 from local_prior import smooth_region
+from scipy.linalg import convolution_matrix
 
 class Optimizer():
     def __init__(self, image, kernel_size, sigma, max_iterations = 15):
@@ -32,8 +33,16 @@ class Optimizer():
       
         self.lambda_1 = 1/self.tau
         self.lambda_2 = 1/(sigma**2*self.tau)
-        
-    def omega(self, q):
+
+        self.max_iterations = 15
+
+    def omega(self, input):
+        if input == '0':
+            q = 0
+        elif input == 'x' or input == 'y':
+            q = 1
+        elif input == 'xx' or input == 'yy' or input == 'xy':
+            q = 2
         return 1/((self.zeta_0**2)*self.tau*(2**q))
 
     def conj_fft(self, array): # conj(FFT) operator
@@ -73,14 +82,13 @@ class Optimizer():
                     self.Psi_y[i, j, k] = minimize(objective_y, self.Psi_y[i, j, k]).x[0]
 
     def update_L(self):
-        gradients = ['x','y','xx','xy','yy']
+        gradients = ['0', 'x','y','xx','xy','yy']
         gradient_filters = self.gradient_filter(gradients)
 
-        
         grad_x = self.gradient_filter('x')
         grad_y = self.gradient_filter('y')
 
-        Delta = np.sum([self.omega(var)for var in gradients]*self.conj_fft(gradient_filters)*fft(gradient_filters))     # q=1 for x y, q=2 for xx xy yy
+        Delta = np.sum([self.omega(grad) for grad in gradients]*self.conj_fft(gradient_filters)*fft(gradient_filters))     # q=1 for x y, q=2 for xx xy yy
 
         numer = np.sum(self.conj_fft(self.f)*fft(self.I)*Delta + self.gamma*self.conj_fft(grad_x)*fft(self.Psi_x) + self.gamma*self.conj_fft(grad_y)*fft(self.Psi_y))
         denom = np.sum(self.conj_fft(self.f)*fft(self.f)*Delta + self.gamma*self.conj_fft(grad_x)*fft(grad_x) + self.gamma*self.conj_fft(grad_y)*fft(grad_y))
@@ -89,6 +97,12 @@ class Optimizer():
         self.delta_L = new_L - self.L
         self.L = new_L
     
+    def update_f(self):
+        gradients = ['0', 'x','y','xx','xy','yy']
+        for grad in gradients:
+            convolution_matrix()
+            몰라 씨발
+
     def update_f(self):  
         gradients = ['x','y','xx','xy','yy']
         A = np.array([])
@@ -109,19 +123,19 @@ class Optimizer():
     
     def optimize(self):
         iteration = 0
+        # Inner loop to optimize L
         while iteration < self.max_iterations:
-          # Inner loop to optimize L
             while True:
                 # Update Ψ and compute L
                 self.update_Psi()
                 self.update_L()
                 if  np.linalg.norm(self.delta_L) < 1e-5 and np.linalg.norm(self.delta_Psi) < 1e-5:
-                  break
-                # Update f
-                self.update_f()
-                if np.linalg.norm(self.delta_f) < 1e-5:
                     break
-                iteration += 1
-                self.gamma *= 2
+            # Update f
+            self.update_f()
+            if np.linalg.norm(self.delta_f) < 1e-5:
+                break
+            self.gamma *= 2
+            iteration += 1
         # Return L and f after optimization
         return self.L, self.f

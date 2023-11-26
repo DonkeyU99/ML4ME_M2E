@@ -1,6 +1,7 @@
 import numpy as np
 from loader.likelihood_update import likelihood_update
 from scipy.stats import multivariate_normal
+from utils import compute_gradient
 import cv2
 import scipy
 
@@ -79,17 +80,13 @@ class DeFT():
 
     def prior_local(latent_img, img, kernel_size, sigma, threshold = np.array([5, 5, 5])):
         smooth_region = smooth_region(img)
-        
-
-
-        
-    
+                
     def likelihood_blur(noise,sigma=1.):
-      grad_x = cv2.Sobel(noise,src=-1,dx=1,dy=0)
-      grad_xx =cv2.Sobel(noise,src=-1,dx=2,dy=0)
-      grad_y = cv2.Sobel(noise,src=-1,dx=0,dy=1)
-      grad_yy =cv2.Sobel(noise,src=-1,dx=0,dy=2)
-      grad_xy =cv2.Sobel(noise,src=-1,dx=1,dy=1)
+      grad_x = compute_gradient(noise,src=-1,dx=1,dy=0)
+      grad_xx = compute_gradient(noise,src=-1,dx=2,dy=0)
+      grad_y = compute_gradient(noise,src=-1,dx=0,dy=1)
+      grad_yy = compute_gradient(noise,src=-1,dx=0,dy=2)
+      grad_xy = compute_gradient(noise,src=-1,dx=1,dy=1)
 
       sigma_1 = np.sqrt(2)*sigma
       sigma_2 = 2*sigma
@@ -121,8 +118,8 @@ class DeFT():
         return prior1,2,3,4
     
     def likelihood_update():
-        zeta_0 = ?? #TODO
-        gamma = ?? #TODO
+        zeta_0 = None #TODO
+        gamma = None #TODO
         # usually 1/(ζ**2 * τ) = 50 
         self.likelihood = likelihood_update(self.likelihood,zeta_0,gamma).update()
         return likelihood_disrtribution

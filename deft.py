@@ -82,21 +82,16 @@ class DeFT():
         smooth_region = smooth_region(img)
                 
     def likelihood_blur(noise,sigma=1.):
-      grad_x = compute_gradient(noise,src=-1,dx=1,dy=0)
-      grad_xx = compute_gradient(noise,src=-1,dx=2,dy=0)
-      grad_y = compute_gradient(noise,src=-1,dx=0,dy=1)
-      grad_yy = compute_gradient(noise,src=-1,dx=0,dy=2)
-      grad_xy = compute_gradient(noise,src=-1,dx=1,dy=1)
 
       sigma_1 = np.sqrt(2)*sigma
       sigma_2 = 2*sigma
 
       log_likelihood = 0
-      for i in (grad_x,grad_y):
-          log_likelihood += np.sum(multivariate_normal.logpdf(i, mean=0, cov=sigma_1))  #allow_singular=False
+      for i in ('x','y'):
+          log_likelihood += np.sum(multivariate_normal.logpdf(compute_gradient(noise,i), mean=0, cov=sigma_1))  #allow_singular=False
               
-      for i in (grad_xx,grad_xy,grad_yy):
-          log_likelihood += np.sum(multivariate_normal.logpdf(i, mean=0, cov=sigma_2))
+      for i in ('xx','xy','yy'):
+          log_likelihood += np.sum(multivariate_normal.logpdf(compute_gradient(noise,i), mean=0, cov=sigma_2))
           
       return log_likelihood
     

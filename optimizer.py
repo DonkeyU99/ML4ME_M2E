@@ -3,9 +3,10 @@ import numpy.fft as fft
 from utils import compute_gradient, Phi_func, toeplitz_matrix
 from scipy.optimize import minimize
 from local_prior import smooth_region
+import cv2
 
 class Optimizer():
-    def __init__(self, image, kernel_size, sigma, max_iterations = 15):
+    def __init__(self, image, kernel_size, sigma = None, max_iterations = 15):
         self.I = image
         self.I_flat = self.I.flatten()
         self.I_grad_x = compute_gradient(image, 'x')
@@ -49,7 +50,9 @@ class Optimizer():
         self.k1 = 1.3
         self.k2 = 1.5
 
-        self.max_iterations = 15
+        self.max_iterations = max_iterations
+        self.threshold_smooth_region = np.array([5, 5, 5])
+        self.threshold_Phi_func = 5
 
     def omega(self, input):
         if input == '0':
@@ -163,3 +166,9 @@ class Optimizer():
             iteration += 1
         # Return L and f after optimization
         return self.L, self.f
+    
+
+img = cv2.imread('data/toy_dataset/12_SAMSUNG-GALAXY-J5_M.jpg')
+a = Optimizer(img, 3)
+a.optimize()
+print(a.f)

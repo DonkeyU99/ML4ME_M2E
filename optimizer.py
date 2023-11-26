@@ -1,23 +1,29 @@
 import numpy as np
 import numpy.fft as fft
-from utils import compute_gradient, Phi_func
-import l1ls as L
+from utils import compute_gradient, Phi_func, toeplitz_matrix
 from scipy.optimize import minimize
 from local_prior import smooth_region
-from scipy.linalg import convolution_matrix
 
 class Optimizer():
     def __init__(self, image, kernel_size, sigma, max_iterations = 15):
         self.I = image
+        self.I_flat = self.I.flatten()
         self.I_grad_x = compute_gradient(image, 'x')
         self.I_grad_y = compute_gradient(image, 'y')
+        self.I_grad_x_flat = self.I_grad_x.flatten()
+        self.I_grad_y_flat = self.I_grad_y.flatten()
+        self.I_grad_xx_flat = compute_gradient(image, 'xx').flatten()
+        self.I_grad_xy_flat = compute_gradient(image, 'xy').flatten()
+        self.I_grad_yy_flat = compute_gradient(image, 'yy').flatten()
         self.kernel_size = kernel_size
 
-        self.f = np.diag(np.full(kernel_size, 1))
+        
         # initialize L, psi_X, psi_y
         self.L = image
         self.Psi_x = compute_gradient(self.L, 'x')
         self.Psi_y = compute_gradient(self.L, 'y')
+        self.f = np.diag(np.full(kernel_size, 1))
+        self.f_flat = self.f.flatten()
         
         '''
         Hyperparameters
@@ -89,8 +95,8 @@ class Optimizer():
                     objective_x = lambda x: fun_x(x)
                     objective_y = lambda x: fun_y(x)
 
-                    new_Psi_x[i, j, k] = minimize(objective_x, self.Psi_x[i, j, k]).x[0]
-                    new_Psi_y[i, j, k] = minimize(objective_y, self.Psi_y[i, j, k]).x[0]
+                    new_Psi_x[i, j, k] = minimize(objective_x, self.Psi_x[i, j, k]).x
+                    new_Psi_y[i, j, k] = minimize(objective_y, self.Psi_y[i, j, k]).x
         self.delta_Psi_x = new_Psi_x - self.Psi_x
         self.delta_Psi_y = new_Psi_y - self.Psi_y
 
@@ -114,28 +120,28 @@ class Optimizer():
         self.L = new_L
     
     def update_f(self):
-        gradients = ['0', 'x','y','xx','xy','yy']
-        for grad in gradients:
-            convolution_matrix()
-            몰라 씨발
+        self.f_flat = self.f.flatten()
+        A0 = toeplitz_matrix(self.L, self.kernel_size)
+        Ax = toeplitz_matrix(compute_gradient(self.L, 'x'))
+        Ay = toeplitz_matrix(compute_gradient(self.L, 'y'))
+        Axx = toeplitz_matrix(compute_gradient(self.L, 'xx'))
+        Axy = toeplitz_matrix(compute_gradient(self.L, 'xy'))
+        Ayy = toeplitz_matrix(compute_gradient(self.L, 'yy'))
+        B0 = self.I_flat
+        Bx = self.I_grad_x_flat
+        By = self.I_grad_y_flat
+        Bxx = self.I_grad_xx_flat
+        Bxy = self.I_grad_xy_flat
+        Byy = self.I_grad_yy_flat
 
-    def update_f(self):  
-        gradients = ['x','y','xx','xy','yy']
-        A = np.array([])
-        for var in gradients:
-            C = circulant(f[0])
-            C = np.kron(C, circulant(f[:, 0]))
-            
-            # Use view_as_windows to create overlapping patches of the input image
-            patches = view_as_windows(compute_gradient(self.L,type=var), (len(self.f), len(self.f)), step=1).reshape(-1, len(self.f)**2)
-            
-            A += self.omega(var)*patches
-            
-        B = np.sum([self.omega(var)*compute_gradient(self.I,type=var) for var in gradients])
-        [new_f, status, hist] = L.l1ls(A, y=B, lmbda=1)
+        objective_fun = lambda x: self.omega('0')*np.linalg.norm(A0@x-B0) + self.omega('x')*np.linalg.norm(Ax@x-Bx) + self.omega('y')*np.linalg.norm(Ay@x-By) + self.omega('xx')*np.linalg.norm(Axx@x-Bxx) + self.omega('0')*np.linalg.norm(Axy@x-Bxy) + self.omega('yy')*np.linalg.norm(Ayy@x-Byy) + np.sum(np.abs(x))
 
+        initial_guess = self.f.flatten
+
+        self.f_flat = minimize(objective_fun, initial_guess, method='BFGS').x
+        new_f = self.f_flat.reshape((self.kernel_size, self.kernel_size))
         self.delta_f = new_f - self.f
-        self.f = new_f    
+        self.f = new_f   
     
     def optimize(self):
         iteration = 0

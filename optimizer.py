@@ -4,7 +4,7 @@ from utils import compute_gradient, psf2otf
 import l1ls as L
 
 class Optimizer():
-  def __init__(self, kernel, image,sigma, max_iterations = 100):
+  def __init__(self, kernel, image, sigma, max_iterations = 100):
     self.I = image
     
     self.f = kernel

@@ -62,7 +62,7 @@ class DeFT():
     def train(I,B,F1,F2):
         prior_update(I,B,F1,F2) # -> HOW?
         # optimizer
-        self.likelihood, self.kernel = optimizer.optimize(self.likelihood,self.image,sigma,max_iterations=100)
+        self.L, self.kernel = optimizer.optimize(self.kernel, self.image, sigma, max_iterations=100)
         return
 
     def prior_update():

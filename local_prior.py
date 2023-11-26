@@ -25,8 +25,8 @@ def prior_local(latent_img, img, kernel_size, sigma_1, threshold = np.array([5, 
     region = smooth_region(img, kernel_size, threshold)
     idx = np.where(region == True)
 
-    delta_grad_x = compute_gradient(latent_img, cv2.CV_64F, type = 'x') - compute_gradient(img, cv2.CV_64F, type = 'x')
-    delta_grad_y = compute_gradient(latent_img, cv2.CV_64F, type = 'y') - compute_gradient(img, cv2.CV_64F, type = 'y')
+    delta_grad_x = compute_gradient(latent_img,'x') - compute_gradient(img, 'x')
+    delta_grad_y = compute_gradient(latent_img, 'y') - compute_gradient(img, 'y')
 
     px = multivariate_normal.logpdf(delta_grad_x[idx].flatten(), mean=0, cov=sigma_1)
     py = multivariate_normal.logpdf(delta_grad_y[idx].flatten(), mean=0, cov=sigma_1)

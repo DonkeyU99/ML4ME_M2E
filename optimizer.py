@@ -1,13 +1,14 @@
 import numpy as np
 import numpy.fft as fft
 from utils import compute_gradient, psf2otf
+import l1ls as L
 
 class Optimizer():
-  def __init__(self, kernel, image, likelihood,sigma, max_iterations = 100):
+  def __init__(self, kernel, image,sigma, max_iterations = 100):
     self.I = image
     
     self.f = kernel
-    self.L = likelihood
+    self.L = None
     self.Psi = None
     
     '''
@@ -41,23 +42,25 @@ class Optimizer():
   def update_L(self):
     gradients = ['x','y','xx','xy','yy']
     gradient_filters = self.gradient_filter(gradients)
-    self.Psi = [compute_gradient(self.likelihood, type='x'),compute_gradient(self.likelihood, type='y')]
+    self.Psi = [compute_gradient(self.L, type='x'),compute_gradient(self.L, type='y')]
     
     grad_x = self.gradient_filter('x')
     grad_y = self.gradient_filter('y')
-    [Psi_x, Psi_y] = self.Psi
 
     Delta = np.sum(self.omega(len(gradients))*self.conj_fft(gradient_filters)*gradient_filters)     # q=1 for x y, q=2 for xx xy yy
 
-    denom = np.sum(self.conj_fft(self.f)*fft(self.I)*Delta + self.gamma*self.conj_fft(grad_x)*fft(self.Psi[0]) + self.gamma*self.conj_fft(grad_y)*fft(self.Psi[1]) )
-    numer = np.sum(self.conj_fft(self.f)*fft(self.I)*Delta + self.gamma*self.conj_fft(grad_x)*fft(grad_x) + self.gamma*self.conj_fft(grad_y)*fft(grad_y))
+    numer = np.sum(self.conj_fft(self.f)*fft(self.I)*Delta + self.gamma*self.conj_fft(grad_x)*fft(self.Psi[0]) + self.gamma*self.conj_fft(grad_y)*fft(self.Psi[1]) )
+    denom = np.sum(self.conj_fft(self.f)*fft(self.f)*Delta + self.gamma*self.conj_fft(grad_x)*fft(grad_x) + self.gamma*self.conj_fft(grad_y)*fft(grad_y))
     new_L = np.fft.ifft(numer/denom)
     
     self.delta_L = new_L - self.L
     self.L = new_L
   
   def update_f(self):  
-    #TODO
+    A =
+    B = 
+    [new_f, status, hist] = L.l1ls(A, y=B, lmbda=1)
+
     self.delta_f = new_f - self.f
     self.f = new_f    
   

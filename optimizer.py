@@ -1,15 +1,17 @@
 import numpy as np
 import numpy.fft as fft
-from utils import compute_gradient, psf2otf
+from utils import compute_gradient, psf2otf, Phi_func
 import l1ls as L
 
 class Optimizer():
-  def __init__(self, kernel, image, sigma, max_iterations = 15):
+  def __init__(self, image, kernel_size, sigma, max_iterations = 15):
     self.I = image
-    
-    self.f = kernel
-    self.L = None
-    self.Psi = None
+
+    self.f = np.diag(np.full(kernel_size, 1))
+    # initialize L, psi_X, psi_y
+    self.L = image
+    self.Psi_x = compute_gradient(self.L, 'x')
+    self.Psi_y = compute_gradient(self.L, type='y')
     
     '''
     Hyperparameters
@@ -23,8 +25,8 @@ class Optimizer():
     self.tau = None #TODO
     self.gamma = 2 #TODO
   
-    # self.lambda_1 = 1/tau
-    # self.lambda_2 = 1/(sigma**2*tau)
+    self.lambda_1 = 1/tau
+    self.lambda_2 = 1/(sigma**2*tau)
     
   def omega(self, q):
     return 1/((self.zeta_0**2)*self.tau*(2**q))
@@ -37,12 +39,11 @@ class Optimizer():
     #TODO
     
   def update_Psi(self):
-    # TODO
+    energy_x = self.lambda_1*np.abs(Phi_func(self.Psi_x)) + self.lambda_2*
     
   def update_L(self):
     gradients = ['x','y','xx','xy','yy']
     gradient_filters = self.gradient_filter(gradients)
-    self.Psi = [compute_gradient(self.L, type='x'),compute_gradient(self.L, type='y')]
     
     grad_x = self.gradient_filter('x')
     grad_y = self.gradient_filter('y')

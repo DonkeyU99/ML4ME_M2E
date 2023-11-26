@@ -1,4 +1,5 @@
 import cv2
+import numpy as np
 
 def compute_gradient(source, ddepth = cv2.CV_64F, type='x'):
     if(type == 'x'):
@@ -68,5 +69,6 @@ def psf2otf(psf, shape):
     otf = np.real_if_close(otf, tol=n_ops)
 
     return otf
-  
-  
+
+def Phi_func(x, threshold, k = 2.7, a = 6.1e-4, b = 5):
+    return np.where(x <= threshold, -k*x, -b-a*x**2)

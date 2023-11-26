@@ -16,7 +16,7 @@
 - 가상환경 설정 처음이라면
 
 ```
-conda env create -f ml4me.yml
+conda env create -f ml4me.yaml
 conda activate ml4me
 ```
 

@@ -1,6 +1,6 @@
 import numpy as np
 import numpy.fft as fft
-from utils import compute_gradient, psf2otf, Phi_func
+from utils import compute_gradient, Phi_func
 import l1ls as L
 
 class Optimizer():
@@ -35,8 +35,29 @@ class Optimizer():
     return np.conj(np.fft.fft(array))
   
 
-  def gradient_filter(self, type):
-    #TODO
+  def gradient_filter(self, type = "x"):
+    if (type == "x"):
+      filter_x = [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]
+      fft_output = fft(filter_x)
+
+    if (type == "y"):
+      filter_y = [[-1, -2, -1], [0, 0, 0], [1, 2, 1]]
+      fft_output = fft(filter_y)
+
+    if (type == "xy"):
+      filter_xy = [[1, 0, -1], [0, 0, 0], [-1, 0, 1]]
+      fft_output = fft(filter_xy)
+
+    if (type == "xx"):
+      filter_xx = [[1, -2, 1], [2, -4, 2], [1, -2, 1]]
+      fft_output = fft(filter_xx)
+
+    if (type == "yy"):
+      filter_yy = [[1, 2, 1], [-2, -4, -2], [1, 2, 1]]
+      fft_output = fft(filter_yy)
+      
+    return fft_output 
+
     
   def update_Psi(self):
     energy_x = self.lambda_1*np.abs(Phi_func(self.Psi_x)) + self.lambda_2*
@@ -44,6 +65,7 @@ class Optimizer():
   def update_L(self):
     gradients = ['x','y','xx','xy','yy']
     gradient_filters = self.gradient_filter(gradients)
+    self.Psi = [compute_gradient(self.L, type='x'),compute_gradient(self.L, type='y')]
     
     grad_x = self.gradient_filter('x')
     grad_y = self.gradient_filter('y')

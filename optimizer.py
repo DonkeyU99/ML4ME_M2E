@@ -29,11 +29,19 @@ class Optimizer():
         self.delta_Psi_y = None
         
         self.zeta_0 = None #TODO
+        # tau : 2 ~ 500
         self.tau = None #TODO
         self.gamma = 2 #TODO
-      
-        self.lambda_1 = 1/self.tau
-        self.lambda_2 = 1/(sigma**2*self.tau)
+
+        # 0.002 ~ 0.5 / 10 ~ 25
+        # self.lambda_1 = 1/self.tau
+        # self.lambda_2 = 1/(sigma**2*self.tau)
+
+        self.lambda_1 = 0.05
+        self.lambda_2 = 15
+
+        self.k1 = 1.3
+        self.k2 = 1.5
 
         self.max_iterations = 15
 
@@ -144,6 +152,8 @@ class Optimizer():
             if np.linalg.norm(self.delta_f) < 1e-5:
                 break
             self.gamma *= 2
+            self.lambda_1 /= self.k1
+            self.lambda_2 /= self.k2
             iteration += 1
         # Return L and f after optimization
         return self.L, self.f

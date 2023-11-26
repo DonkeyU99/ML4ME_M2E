@@ -180,8 +180,10 @@ class DeFT():
     ##    pass
     
     def train(I,B,F1,F2):
-        # Hyperparameters
-        # usually 1/(ζ**2 * τ) = 50 
+        '''
+        Hyperparameters
+        usually 1/(ζ**2 * τ) = 50 
+        '''
         zeta_0 = None #TODO
         tau = None #TODO
         gamma = None #TODO

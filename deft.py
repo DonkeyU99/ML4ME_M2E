@@ -42,7 +42,6 @@ class DeFT():
     
     #     return np.sqrt((s2 - s**2 / ns) / ns)
 
-                   
     def likelihood_blur(noise,sigma=1.):
 
       sigma_1 = np.sqrt(2)*sigma
@@ -61,8 +60,6 @@ class DeFT():
     ##    pass
     
     def train(I,B,F1,F2):
-
-
         prior_update(I,B,F1,F2) # -> HOW?
         # optimizer
         self.likelihood, self.kernel = optimizer.optimize(self.likelihood,self.image,sigma,max_iterations=100)

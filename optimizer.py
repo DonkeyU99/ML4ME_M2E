@@ -2,7 +2,7 @@ import numpy
 import numpy.fft.fft as fft
 from utils import compute_gradient, psf2otf
 
-class optimizer():
+class Optimizer():
   def __init__(self, kernel, image, likelihood,sigma, max_iterations = 100):
     self.I = image
     

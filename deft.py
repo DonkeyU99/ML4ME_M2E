@@ -1,9 +1,10 @@
 import numpy as np
-from loader.likelihood_update import likelihood_update
-from scipy.stats import multivariate_normal
-from utils import compute_gradient
 import cv2
 import scipy
+from scipy.stats import multivariate_normal
+
+from optimization import optimizer
+from utils import compute_gradient
 
 class DeFT():
     def __init__(self):
@@ -99,23 +100,23 @@ class DeFT():
     ##    pass
     
     def train(I,B,F1,F2):
-        ##optimizer
-        prior_update(I,B,F1,F2)
-        likelihood_update(I,B,F1,F2)
-    
-        pass
-    
+        # Hyperparameters
+        # usually 1/(ζ**2 * τ) = 50 
+        zeta_0 = None #TODO
+        tau = None #TODO
+        gamma = None #TODO
+        
+        prior_update(I,B,F1,F2) # -> HOW?
+        # optimizer
+        deft_optimizer = optimizer(likelihood = self.likelihood,zeta_0,gamma,tau,sigma,image,kernel)
+        self.likelihood = deft_optimizer.likelihood_update()
+        self.kernel = deft_optimizaer.kernel_update()
+        
+        return        
+
     def prior_update():
         prior_K1()
         prior_K2()
         prior_K1_conv_K2()
         prior_global()
         return prior1,2,3,4
-    
-    def likelihood_update():
-        zeta_0 = None #TODO
-        tau = None #TODO
-        gamma = None #TODO
-        # usually 1/(ζ**2 * τ) = 50 
-        self.likelihood = likelihood_update(likelihood = self.likelihood,zeta_0,gamma,tau,sigma,image,kernel).update()
-        return likelihood_disrtribution

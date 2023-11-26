@@ -7,11 +7,12 @@ from optimizer import optimizer
 from utils import compute_gradient
 from collections import defaultdict
 from sklearn.mixture import GaussianMixture
+from prior.kernel_prior import Kernel_Prior
 
 class DeFT():
     def __init__(self):
-        self.prior1 = None
-        self.prior2= None
+        self.prior_K1 = Kernel_Prior((3,3),'uniform')
+        self.prior_K2= Kernel_Prior((3,3),'uniform')
         self.prior3 = None
         self.prior4 = None
         self.likelihood = None
@@ -21,7 +22,6 @@ class DeFT():
     ##def bayesian_update_K1():
     ##    pass
     ##
-
     def load_dataset():
         pass
     
@@ -49,10 +49,10 @@ class DeFT():
 
       log_likelihood = 0
       for i in ('x','y'):
-          log_likelihood += np.sum(multivariate_normal.logpdf(compute_gradient(noise,i), mean=0, cov=sigma_1))  #allow_singular=False
+          log_likelihood += np.sum(multivariate_normal.logpdf(compute_gradient(noise,i).flatten(), mean=0, cov=sigma_1))  #allow_singular=False
               
       for i in ('xx','xy','yy'):
-          log_likelihood += np.sum(multivariate_normal.logpdf(compute_gradient(noise,i), mean=0, cov=sigma_2))
+          log_likelihood += np.sum(multivariate_normal.logpdf(compute_gradient(noise,i).flatten(), mean=0, cov=sigma_2))
           
       return log_likelihood
     

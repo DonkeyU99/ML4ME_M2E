@@ -1,16 +1,16 @@
 import cv2
 
-def compute_gradient(source, type='x'):
+def compute_gradient(source, ddepth = cv2.CV_64F, type='x'):
     if(type == 'x'):
-        return cv2.Sobel(source,src=-1,dx=1,dy=0)
+        return cv2.Sobel(source,ddepth,dx=1,dy=0)
     if(type == 'xx'):
-        return cv2.Sobel(source,src=-1,dx=2,dy=0)
+        return cv2.Sobel(source,ddepth,dx=2,dy=0)
     if(type == 'y'):
-        return cv2.Sobel(source,src=-1,dx=0,dy=1)
+        return cv2.Sobel(source,ddepth,dx=0,dy=1)
     if(type == 'yy'):
-        return cv2.Sobel(source,src=-1,dx=0,dy=2)
+        return cv2.Sobel(source,ddepth,dx=0,dy=2)
     if(type == 'xy'):
-        return cv2.Sobel(source,src=-1,dx=1,dy=1)
+        return cv2.Sobel(source,ddepth,dx=1,dy=1)
       
 # https://github.com/aboucaud/pypher/blob/master/pypher/pypher.py#L283
 def psf2otf(psf, shape):

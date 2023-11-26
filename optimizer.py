@@ -2,20 +2,24 @@ import numpy as np
 import numpy.fft as fft
 from utils import compute_gradient, Phi_func
 import l1ls as L
+from scipy.optimize import minimize
 
 class Optimizer():
     def __init__(self, image, kernel_size, sigma, max_iterations = 15):
         self.I = image
+        self.I_grad_x = compute_gradient(image, 'x')
+        self.I_grad_y = compute_gradient(image, 'y')
+        self.kernel_size = kernel_size
 
         self.f = np.diag(np.full(kernel_size, 1))
         # initialize L, psi_X, psi_y
         self.L = image
         self.Psi_x = compute_gradient(self.L, 'x')
-        self.Psi_y = compute_gradient(self.L, type='y')
+        self.Psi_y = compute_gradient(self.L, 'y')
         
         '''
         Hyperparameters
-        usually 1/(ζ**2 * τ) = 50 
+        usually 1/(ζ**2 * τ) = 50  
         '''
         self.delta_f = None
         self.delta_L = None
@@ -59,7 +63,14 @@ class Optimizer():
 
     
     def update_Psi(self):
-        energy_x = self.lambda_1*np.abs(Phi_func(self.Psi_x)) + self.lambda_2*
+        mask = 1*smooth_region(self.L, self.kernel_size, self.threshold_smooth_region)
+        for i in range(self.I.shape[0]):
+            for j in range(self.I.shape[1]):
+                for k in range(3):
+                    fun_x = lambda x: self.lambda_1*np.abs(Phi_func(x, self.threshold_Phi_func))+self.lambda_2*mask[i, j]*(x-self.I_grad_x[i, j, k])**2+self.gamma*(x-compute_gradient(self.L, 'x')[i, j, k])**2
+                    fun_y = lambda x: self.lambda_1*np.abs(Phi_func(x, self.threshold_Phi_func))+self.lambda_2*mask[i, j]*(x-self.I_grad_y[i, j, k])**2+self.gamma*(x-compute_gradient(self.L, 'y')[i, j, k])**2
+                    self.Psi_x[i, j, k] = minimize(fun_x, self.Psi_x[i, j, k])
+                    self.Psi_y[i, j, k] = minimize(fun_y, self.Psi_y[i, j, k])
       
     def update_L(self):
         gradients = ['x','y','xx','xy','yy']

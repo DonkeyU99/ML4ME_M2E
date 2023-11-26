@@ -1,3 +1,5 @@
+import numpy as np
+
 class DeFT():
     def __init__(self):
         self.prior1 = None
@@ -5,6 +7,8 @@ class DeFT():
         self.prior3 = None
         self.prior4 = None
         self.likelihood = None
+
+        self.kernel_sizes = 2
 
     ##def bayesian_update_K1():
     ##    pass
@@ -22,17 +26,24 @@ class DeFT():
         pass
     
     ####Fill in distributions 
-    def prior_K1():
-        pass
+    def prior_K1(kernel_size,prior_type='uniform'):
+        if(prior_type=="uniform"):
+            return np.full(kernel_size,1/(kernel_size[0]*kernel_size[1]))
     
-    def prior_K2():
-        pass
-    
+    def prior_K2(kernel_size,prior_type='uniform'):
+        if(prior_type=="uniform"):
+            return np.full(kernel_size,1/(kernel_size[0]*kernel_size[1]))
+   
     def prior_K1_conv_K2():
+        ###Assumed K1 and K2 independent
+        ###Computes the joint distribution of K1 conv K2
         pass
     
-    def prior_global():
-        pass
+    def prior_global(img_size,prior_type='uniform'):
+        if(prior_type=="uniform"):
+            ###Img size given as 2D
+            return np.full(img_size,1/(img_size[0]*img_size[1]))
+
     
     def prior_local():
     pass

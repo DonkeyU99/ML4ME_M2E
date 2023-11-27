@@ -35,9 +35,9 @@ class Optimizer():
         self.delta_Psi_x = None
         self.delta_Psi_y = None
         
-        self.zeta_0 = None #TODO
+        self.zeta_0 = 1 #TODO
         # tau : 2 ~ 500
-        self.tau = None #TODO
+        self.tau = 0.25 #TODO
         self.gamma = 2 #TODO
 
         # 0.002 ~ 0.5 / 10 ~ 25
@@ -63,14 +63,13 @@ class Optimizer():
             q = 2
         return 1/((self.zeta_0**2)*self.tau*(2**q))
 
-    def conj_fft(self, array): # conj(FFT) operator
-        return np.conj(np.fft.fft(array))
+    def conj_fftn(self, array,axes=(0, 1)): # conj(FFT) operator
+        return np.conj(np.fft.fftn(array,axes=axes))
 
     def gradient_filter(self, type = "x"):
         if (type == "x"):
             filter = [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]
             
-
         if (type == "y"):
             filter = [[-1, -2, -1], [0, 0, 0], [1, 2, 1]]
 
@@ -98,8 +97,10 @@ class Optimizer():
                     objective_x = lambda x: fun_x(x)
                     objective_y = lambda x: fun_y(x)
 
-                    new_Psi_x[i, j, k] = minimize(objective_x, self.Psi_x[i, j, k]).x
-                    new_Psi_y[i, j, k] = minimize(objective_y, self.Psi_y[i, j, k]).x
+                    print(f"Ratio : {i+1}/{self.I.shape[0]}, {j+1}/{self.I.shape[1]}, {k+1}/3")
+
+                    new_Psi_x[i, j, k] = minimize(objective_x, self.Psi_x[i, j, k].item(),method="BFGS").x[0]
+                    new_Psi_y[i, j, k] = minimize(objective_y, self.Psi_y[i, j, k].item(),method="BFGS").x[0]
         self.delta_Psi_x = new_Psi_x - self.Psi_x
         self.delta_Psi_y = new_Psi_y - self.Psi_y
 
@@ -107,23 +108,30 @@ class Optimizer():
         self.Psi_y = new_Psi_y
 
     def update_L(self):
-        gradients = ['0', 'x','y','xx','xy','yy']
-        gradient_filters = self.gradient_filter(gradients)
+        gradients = ['x','y','xx','xy','yy']  #'0',
+        #gradient_filters = self.gradient_filter(gradients)
 
         grad_x = self.gradient_filter('x')
         grad_y = self.gradient_filter('y')
 
-        Delta = np.sum([self.omega(grad) for grad in gradients]*self.conj_fft(gradient_filters)*fft(gradient_filters))     # q=1 for x y, q=2 for xx xy yy
+        #Delta = np.sum([self.omega(grad) for grad in gradients]*self.conj_fft(gradient_filters)*fft#(gradient_filters))     # q=1 for x y, q=2 for xx xy yy
 
-        numer = np.sum(self.conj_fft(self.f)*fft(self.I)*Delta + self.gamma*self.conj_fft(grad_x)*fft(self.Psi_x) + self.gamma*self.conj_fft(grad_y)*fft(self.Psi_y))
-        denom = np.sum(self.conj_fft(self.f)*fft(self.f)*Delta + self.gamma*self.conj_fft(grad_x)*fft(grad_x) + self.gamma*self.conj_fft(grad_y)*fft(grad_y))
-        new_L = np.fft.ifft(numer/denom)
+        """여기 고쳐야함 fft dimension
+        Delta = np.sum([self.omega(grad)*self.conj_fftn(self.gradient_filter(grad),axes=(0, 1))*fft.fftn(self.gradient_filter(grad),axes=(0, 1)) for grad in gradients]) # q=1 for x y, q=2 for xx xy yy
+
+        print(Delta)
+        #np.array([self.f,self.f,self.f])
+        numer = np.sum(self.conj_fftn(self.f,axes=(0, 1))*fft.fftn(self.I,axes=(0, 1))*Delta + self.gamma*self.conj_fftn(grad_x)*fft.fftn(self.Psi_x,axes=(0, 1)) + self.gamma*self.conj_fftn(grad_y,axes=(0, 1))*fft.fftn(self.Psi_y,axes=(0, 1)))
+        denom = np.sum(self.conj_fftn(self.f,axes=(0, 1))*fft.fftn(self.f,axes=(0, 1))*Delta + self.gamma*self.conj_fftn(grad_x,axes=(0, 1))*fft.fftn(grad_x,axes=(0, 1)) + self.gamma*self.conj_fftn(grad_y,axes=(0, 1))*fft.fftn(grad_y,axes=(0, 1)))
+        new_L = np.fft.ifftn(numer/denom,axes=(0, 1))
         
         self.delta_L = new_L - self.L
         self.L = new_L
+        """
     
     def update_f(self):
         self.f_flat = self.f.flatten()
+        ###Toeplitz -> 2D <-> 3D 안됌
         A0 = toeplitz_matrix(self.L, self.kernel_size)
         Ax = toeplitz_matrix(compute_gradient(self.L, 'x'))
         Ay = toeplitz_matrix(compute_gradient(self.L, 'y'))
@@ -154,11 +162,22 @@ class Optimizer():
                 # Update Ψ and compute L
                 self.update_Psi()
                 self.update_L()
-                if  np.linalg.norm(self.delta_L) < 1e-5 and np.linalg.norm(self.delta_Psi_x)+np.linalg.norm(self.delta_Psi_y)< 1e-5:
+                print("------L delta-------")
+                norm_L = np.linalg.norm(self.delta_L)
+                print(norm_L)
+
+                print("------Psi delta-------")
+                norm_psi = np.linalg.norm(self.delta_Psi_x)+np.linalg.norm(self.delta_Psi_y)
+                print(norm_psi)
+
+                if norm_L < 1e-5 and norm_psi< 1e-5:
                     break
             # Update f
             self.update_f()
-            if np.linalg.norm(self.delta_f) < 1e-5:
+            print("--f delta--")
+            norm_delta = np.linalg.norm(self.delta_f)
+            print(norm_delta)
+            if norm_delta < 1e-5:
                 break
             self.gamma *= 2
             self.lambda_1 /= self.k1
@@ -168,7 +187,10 @@ class Optimizer():
         return self.L, self.f
     
 
-img = cv2.imread('data/toy_dataset/12_SAMSUNG-GALAXY-J5_M.jpg')
+#img = cv2.imread('data/toy_dataset/test.jpg')
+
+img = np.random.randint(0,256,(28,28,3)).astype(float)
+
 a = Optimizer(img, 3)
-a.optimize()
-print(a.f)
+L,f = a.optimize()
+print(L)

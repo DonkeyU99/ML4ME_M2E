@@ -18,6 +18,8 @@ class Optimizer():
         self.I_grad_yy_flat = compute_gradient(image, 'yy').flatten()
         self.kernel_size = kernel_size
 
+        self.F_I = fft.fft2(self.I, axes = (0, 1))
+
         
         # initialize L, psi_X, psi_y
         self.L = image
@@ -50,9 +52,33 @@ class Optimizer():
         self.k1 = 1.3
         self.k2 = 1.5
 
+        self.weight = np.array([self.omega(grad) for grad in ['0','x','y','xx','xy','yy']])
+        self.sigma_star = np.array([fft.fft2(self.gradient_filter(grad)) for grad in ['0','x','y','xx','xy','yy']])
+        self.delta = np.einsum('i,ijk->jk', self.weight, np.einsum('ijk,ijk->ijk', self.sigma_star, np.conjugate(self.sigma_star)))
+
         self.max_iterations = max_iterations
         self.threshold_smooth_region = np.array([5, 5, 5])
         self.threshold_Phi_func = 5
+        
+    def gradient_filter(self, type):
+        if type == '0':
+            filter = [[0, 0, 0], [0, 1, 0], [0, 0, 0]]
+
+        if type == 'x':
+            filter = [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]
+            
+        if type == 'y':
+            filter = [[-1, -2, -1], [0, 0, 0], [1, 2, 1]]
+
+        if type == 'xy':
+            filter = [[1, 0, -1], [0, 0, 0], [-1, 0, 1]]
+
+        if type == 'xx':
+            filter = [[1, -2, 1], [2, -4, 2], [1, -2, 1]]
+
+        if type == 'yy':
+            filter = [[1, 2, 1], [-2, -4, -2], [1, 2, 1]]
+        return np.array(filter)
 
     def omega(self, input):
         if input == '0':
@@ -61,29 +87,10 @@ class Optimizer():
             q = 1
         elif input == 'xx' or input == 'yy' or input == 'xy':
             q = 2
-        return 1/((self.zeta_0**2)*self.tau*(2**q))
+        return 50/2**q
 
-    def conj_fftn(self, array,axes=(0, 1)): # conj(FFT) operator
-        return np.conj(np.fft.fftn(array,axes=axes))
-
-    def gradient_filter(self, type = "x"):
-        if (type == "x"):
-            filter = [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]
-            
-        if (type == "y"):
-            filter = [[-1, -2, -1], [0, 0, 0], [1, 2, 1]]
-
-        if (type == "xy"):
-            filter = [[1, 0, -1], [0, 0, 0], [-1, 0, 1]]
-
-        if (type == "xx"):
-            filter = [[1, -2, 1], [2, -4, 2], [1, -2, 1]]
-
-        if (type == "yy"):
-            filter = [[1, 2, 1], [-2, -4, -2], [1, 2, 1]]
-        
-        return filter 
-
+    def conj_fftn(self, array, axes=(0, 1)): # conj(FFT) operator
+        return np.conj(np.fft.fftn(array, axes=axes))
     
     def update_Psi(self):
         mask = 1*smooth_region(self.L, self.kernel_size, self.threshold_smooth_region)
@@ -108,12 +115,23 @@ class Optimizer():
         self.Psi_y = new_Psi_y
 
     def update_L(self):
-        gradients = ['x','y','xx','xy','yy']  #'0',
-        #gradient_filters = self.gradient_filter(gradients)
 
-        grad_x = self.gradient_filter('x')
-        grad_y = self.gradient_filter('y')
+        F_psi_x = fft.fft2(self.Psi_x, axes = (0, 1))
+        F_psi_y = fft.fft2(self.Psi_y, axes = (0, 1))
 
+        F_f = fft.fft2(self.f, axes = (0, 1)) # 3x3
+        self.F_I # 28x28x3
+        self.delta #3x3
+
+        denom = np.conjugate(F_f) * F_f * self.delta + self.gamma * (np.conjugate(self.sigma_star[1]) * self.sigma_star[1] + np.conjugate(self.sigma_star[2]) * self.sigma_star[2])
+        for i in range(3):
+            numer = np.conjugate(F_f) * self.F_I[:,:,i] * self.delta + self.gamma * (np.conjugate(self.sigma_star[1]) * F_psi_x[:,:,i] + np.conjugate(self.sigma_star[2]) * F_psi_y[:,:,i])
+            
+            new_L[:,:,i] = fft.ifft2(numer/denom, axes = (0, 1))
+
+        
+
+        
         #Delta = np.sum([self.omega(grad) for grad in gradients]*self.conj_fft(gradient_filters)*fft#(gradient_filters))     # q=1 for x y, q=2 for xx xy yy
 
         """여기 고쳐야함 fft dimension
@@ -190,5 +208,8 @@ class Optimizer():
 img = np.random.randint(0,256,(28,28,3)).astype(float)
 
 a = Optimizer(img, 3)
-L,f = a.optimize()
-print(L)
+print(a.delta.shape)
+
+
+# L,f = a.optimize()
+# print(L)

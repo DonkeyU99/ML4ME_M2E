@@ -131,7 +131,6 @@ class Optimizer():
     
     def update_f(self):
         self.f_flat = self.f.flatten()
-        ###Toeplitz -> 2D <-> 3D 안됌
         A0 = toeplitz_matrix(self.L, self.kernel_size)
         Ax = toeplitz_matrix(compute_gradient(self.L, 'x'))
         Ay = toeplitz_matrix(compute_gradient(self.L, 'y'))
@@ -146,8 +145,7 @@ class Optimizer():
         Byy = self.I_grad_yy_flat
 
         objective_fun = lambda x: self.omega('0')*np.linalg.norm(A0@x-B0) + self.omega('x')*np.linalg.norm(Ax@x-Bx) + self.omega('y')*np.linalg.norm(Ay@x-By) + self.omega('xx')*np.linalg.norm(Axx@x-Bxx) + self.omega('0')*np.linalg.norm(Axy@x-Bxy) + self.omega('yy')*np.linalg.norm(Ayy@x-Byy) + np.sum(np.abs(x))
-
-        initial_guess = self.f.flatten
+        initial_guess = self.f.flatten()
 
         self.f_flat = minimize(objective_fun, initial_guess, method='BFGS').x
         new_f = self.f_flat.reshape((self.kernel_size, self.kernel_size))

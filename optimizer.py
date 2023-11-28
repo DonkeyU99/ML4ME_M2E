@@ -18,7 +18,10 @@ class Optimizer():
         self.I_grad_yy_flat = compute_gradient(image, 'yy').flatten()
         self.kernel_size = kernel_size
 
-        self.F_I = fft.fft2(self.I, axes = (0, 1))
+        self.height = image.shape[0] + kernel_size - 1
+        self.width = image.shape[1] + kernel_size - 1
+        self.F_I = fft.fft2(self.I,(self.height, self.width), axes = (0, 1))
+        
 
         
         # initialize L, psi_X, psi_y
@@ -53,7 +56,7 @@ class Optimizer():
         self.k2 = 1.5
 
         self.weight = np.array([self.omega(grad) for grad in ['0','x','y','xx','xy','yy']])
-        self.sigma_star = np.array([fft.fft2(self.gradient_filter(grad)) for grad in ['0','x','y','xx','xy','yy']])
+        self.sigma_star = np.array([fft.fft2(self.gradient_filter(grad),(self.height, self.width)) for grad in ['0','x','y','xx','xy','yy']])
         self.delta = np.einsum('i,ijk->jk', self.weight, np.einsum('ijk,ijk->ijk', self.sigma_star, np.conjugate(self.sigma_star)))
 
         self.max_iterations = max_iterations
@@ -90,7 +93,7 @@ class Optimizer():
         return 50/2**q
 
     def conj_fftn(self, array, axes=(0, 1)): # conj(FFT) operator
-        return np.conj(np.fft.fftn(array, axes=axes))
+        return np.conj(np.fft.fftn(array,(self.height, self.width), axes=axes))
     
     def update_Psi(self):
         mask = 1*smooth_region(self.L, self.kernel_size, self.threshold_smooth_region)
@@ -104,7 +107,7 @@ class Optimizer():
                     objective_x = lambda x: fun_x(x)
                     objective_y = lambda x: fun_y(x)
 
-                    print(f"Ratio : {i+1}/{self.I.shape[0]}, {j+1}/{self.I.shape[1]}, {k+1}/3")
+                    #print(f"Ratio : {i+1}/{self.I.shape[0]}, {j+1}/{self.I.shape[1]}, {k+1}/3")
 
                     new_Psi_x[i, j, k] = minimize(objective_x, self.Psi_x[i, j, k].item(),method="BFGS").x[0]
                     new_Psi_y[i, j, k] = minimize(objective_y, self.Psi_y[i, j, k].item(),method="BFGS").x[0]
@@ -115,23 +118,30 @@ class Optimizer():
         self.Psi_y = new_Psi_y
 
     def update_L(self):
+        
+        print('start update L')
+        F_psi_x = fft.fft2(self.Psi_x,(self.height, self.width), axes = (0, 1))
+        F_psi_y = fft.fft2(self.Psi_y,(self.height, self.width), axes = (0, 1))
 
-        F_psi_x = fft.fft2(self.Psi_x, axes = (0, 1))
-        F_psi_y = fft.fft2(self.Psi_y, axes = (0, 1))
-
-        F_f = fft.fft2(self.f, axes = (0, 1)) # 3x3
+        F_f = fft.fft2(self.f,(self.height, self.width), axes = (0, 1)) # 3x3 -> (i+f-1)x(i+f-1)
         self.F_I # 28x28x3
         self.delta #3x3
-
+        
         denom = np.conjugate(F_f) * F_f * self.delta + self.gamma * (np.conjugate(self.sigma_star[1]) * self.sigma_star[1] + np.conjugate(self.sigma_star[2]) * self.sigma_star[2])
-        new_L = np.zeros_like()
+        new_L = np.zeros((self.height, self.width,3))
         for i in range(3):
             numer = np.conjugate(F_f) * self.F_I[:,:,i] * self.delta + self.gamma * (np.conjugate(self.sigma_star[1]) * F_psi_x[:,:,i] + np.conjugate(self.sigma_star[2]) * F_psi_y[:,:,i])
             
-            new_L[:,:,i] = fft.ifft2(numer/denom, axes = (0, 1))
+            new_L[:,:,i] = fft.ifft2(numer/denom,(self.height, self.width), axes = (0, 1))
+        # image cropping
+        st = (self.kernel_size - 1) // 2 - 1
+        ed = self.I.shape[0]
+        new_L = new_L[st:ed, st:ed, :]
 
         self.delta_L = new_L - self.L
         self.L = new_L
+        print('delta_L:',self.delta_L.shape)
+        print('self.L:', self.L.shape)
 
         
         #Delta = np.sum([self.omega(grad) for grad in gradients]*self.conj_fft(gradient_filters)*fft#(gradient_filters))     # q=1 for x y, q=2 for xx xy yy
@@ -210,7 +220,8 @@ class Optimizer():
 img = np.random.randint(0,256,(28,28,3)).astype(float)
 
 a = Optimizer(img, 3)
-print(a.delta.shape)
+a.optimize()
+
 
 
 # L,f = a.optimize()

@@ -124,7 +124,7 @@ class Optimizer():
         F_psi_y = fft.fft2(self.Psi_y,(self.height, self.width), axes = (0, 1))
 
         F_f = fft.fft2(self.f,(self.height, self.width), axes = (0, 1)) # 3x3 -> (i+f-1)x(i+f-1)
-        self.F_I # 28x28x3
+        self.F_I #30x30x3(for img 28, kernel 3)
         self.delta #3x3
         
         denom = np.conjugate(F_f) * F_f * self.delta + self.gamma * (np.conjugate(self.sigma_star[1]) * self.sigma_star[1] + np.conjugate(self.sigma_star[2]) * self.sigma_star[2])
@@ -136,7 +136,8 @@ class Optimizer():
         # image cropping
         st = (self.kernel_size - 1) // 2 - 1
         ed = self.I.shape[0]
-        new_L = new_L[st:ed, st:ed, :]
+        ed_ = self.I.shape[1] # if image is not square
+        new_L = new_L[st:ed, st:ed_, :]
 
         self.delta_L = new_L - self.L
         self.L = new_L
@@ -219,9 +220,9 @@ class Optimizer():
 
 img = np.random.randint(0,256,(28,28,3)).astype(float)
 
-a = Optimizer(img, 3)
+a = Optimizer(img, 3, max_iterations = 5)
 a.optimize()
-
+# update L & update psi 부분 확인
 
 
 # L,f = a.optimize()

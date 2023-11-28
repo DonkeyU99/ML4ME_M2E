@@ -124,6 +124,7 @@ class Optimizer():
         self.delta #3x3
 
         denom = np.conjugate(F_f) * F_f * self.delta + self.gamma * (np.conjugate(self.sigma_star[1]) * self.sigma_star[1] + np.conjugate(self.sigma_star[2]) * self.sigma_star[2])
+        new_L = np.zeros_like()
         for i in range(3):
             numer = np.conjugate(F_f) * self.F_I[:,:,i] * self.delta + self.gamma * (np.conjugate(self.sigma_star[1]) * F_psi_x[:,:,i] + np.conjugate(self.sigma_star[2]) * F_psi_y[:,:,i])
             

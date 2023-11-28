@@ -8,14 +8,14 @@ import cv2
 class Optimizer():
     def __init__(self, image, kernel_size, sigma = None, max_iterations = 15):
         self.I = image
-        self.I_flat = self.I.flatten()
+        self.I_flat = self.I.reshape(-1,3).T
         self.I_grad_x = compute_gradient(image, 'x')
         self.I_grad_y = compute_gradient(image, 'y')
-        self.I_grad_x_flat = self.I_grad_x.flatten()
-        self.I_grad_y_flat = self.I_grad_y.flatten()
-        self.I_grad_xx_flat = compute_gradient(image, 'xx').flatten()
-        self.I_grad_xy_flat = compute_gradient(image, 'xy').flatten()
-        self.I_grad_yy_flat = compute_gradient(image, 'yy').flatten()
+        self.I_grad_x_flat = self.I_grad_x.reshape(-1,3).T
+        self.I_grad_y_flat = self.I_grad_y.reshape(-1,3).T
+        self.I_grad_xx_flat = compute_gradient(image, 'xx').reshape(-1,3).T
+        self.I_grad_xy_flat = compute_gradient(image, 'xy').reshape(-1,3).T
+        self.I_grad_yy_flat = compute_gradient(image, 'yy').reshape(-1,3).T
         self.kernel_size = kernel_size
 
         self.height = image.shape[0] + kernel_size - 1
@@ -163,17 +163,23 @@ class Optimizer():
     def update_f(self):
         self.f_flat = self.f.flatten()
         A0 = toeplitz_matrix(self.L, self.kernel_size)
-        Ax = toeplitz_matrix(compute_gradient(self.L, 'x'))
-        Ay = toeplitz_matrix(compute_gradient(self.L, 'y'))
-        Axx = toeplitz_matrix(compute_gradient(self.L, 'xx'))
-        Axy = toeplitz_matrix(compute_gradient(self.L, 'xy'))
-        Ayy = toeplitz_matrix(compute_gradient(self.L, 'yy'))
+        Ax = toeplitz_matrix(compute_gradient(self.L, 'x'),kernel_size=self.kernel_size)
+        Ay = toeplitz_matrix(compute_gradient(self.L, 'y'),kernel_size=self.kernel_size)
+        Axx = toeplitz_matrix(compute_gradient(self.L, 'xx'),kernel_size=self.kernel_size)
+        Axy = toeplitz_matrix(compute_gradient(self.L, 'xy'),kernel_size=self.kernel_size)
+        Ayy = toeplitz_matrix(compute_gradient(self.L, 'yy'),kernel_size=self.kernel_size)
         B0 = self.I_flat
         Bx = self.I_grad_x_flat
         By = self.I_grad_y_flat
         Bxx = self.I_grad_xx_flat
         Bxy = self.I_grad_xy_flat
         Byy = self.I_grad_yy_flat
+
+        #print(A0.shape)
+        #print(self.f.shape)
+        #print(B0.shape)
+        #print(A0@self.f.flatten())
+        #print((A0@self.f.flatten()).shape)
 
         objective_fun = lambda x: self.omega('0')*np.linalg.norm(A0@x-B0) + self.omega('x')*np.linalg.norm(Ax@x-Bx) + self.omega('y')*np.linalg.norm(Ay@x-By) + self.omega('xx')*np.linalg.norm(Axx@x-Bxx) + self.omega('0')*np.linalg.norm(Axy@x-Bxy) + self.omega('yy')*np.linalg.norm(Ayy@x-Byy) + np.sum(np.abs(x))
         initial_guess = self.f.flatten()
@@ -199,7 +205,7 @@ class Optimizer():
                 norm_psi = np.linalg.norm(self.delta_Psi_x)+np.linalg.norm(self.delta_Psi_y)
                 print(norm_psi)
 
-                if norm_L < 1e-5 and norm_psi< 1e-5:
+                if norm_L > 1e-5 and norm_psi > 1e-5:
                     break
             # Update f
             self.update_f()

@@ -130,7 +130,8 @@ class Optimizer():
             
             new_L[:,:,i] = fft.ifft2(numer/denom, axes = (0, 1))
 
-        
+        self.delta_L = new_L - self.L
+        self.L = new_L
 
         
         #Delta = np.sum([self.omega(grad) for grad in gradients]*self.conj_fft(gradient_filters)*fft#(gradient_filters))     # q=1 for x y, q=2 for xx xy yy

@@ -80,19 +80,19 @@ class Optimizer:
             filter = [[0, 0, 0], [0, 1, 0], [0, 0, 0]]
 
         if type == 'x':
-            filter = [[1, 0, -1], [2, 0, -2], [1, 0, -1]]
-            
+            filter = [[1, 0, -1], [2, 0, -2], [1, 0, -1]] / 4
+                        
         if type == 'y':
-            filter = [[1, 2, 1], [0, 0, 0], [-1, -2, -1]]
+            filter = [[1, 2, 1], [0, 0, 0], [-1, -2, -1]] / 4
 
         if type == 'xy':
-            filter = [[1, 0, -1], [0, 0, 0], [-1, 0, 1]]
+            filter = [[1, 0, -1], [0, 0, 0], [-1, 0, 1]] / 8
 
         if type == 'xx':
-            filter = [[1, 2, 1], [-2, -4, -2], [1, 2, 1]]
+            filter = [[1, 2, 1], [-2, -4, -2], [1, 2, 1]] / 8
 
         if type == 'yy':
-            filter = [[1, -2, 1], [2, -4, 2], [1, -2, 1]]
+            filter = [[1, -2, 1], [2, -4, 2], [1, -2, 1]] / 8
         return np.array(filter)
 
     def omega(self, input):
@@ -370,7 +370,6 @@ class Optimizer:
                 self.delta_Psi_y)
                 print(norm_psi)
 
-                
                 #while(norm_L > 1e-5):
                 self.update_L()
                 norm_L = np.linalg.norm(self.delta_L)

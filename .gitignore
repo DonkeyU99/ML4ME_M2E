@@ -160,3 +160,5 @@ cython_debug/
 #.idea/
 
 dont_upload.txt
+
+/fig_save

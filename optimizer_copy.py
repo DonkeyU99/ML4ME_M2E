@@ -29,7 +29,7 @@ class Optimizer:
         self.L = image
         self.Psi_x = compute_gradient(self.L, "x")
         self.Psi_y = compute_gradient(self.L, "y")
-        self.f = np.diag((1/kernel_size)*np.full(kernel_size, 1))
+        self.f = np.diag((1 / kernel_size) * np.full(kernel_size, 1))
         self.f_flat = self.f.flatten()
 
         """
@@ -72,27 +72,35 @@ class Optimizer:
         )
 
         self.max_iterations = max_iterations
-        self.threshold_smooth_region = np.array([5, 5 ,5])
+        self.threshold_smooth_region = np.array([5, 5, 5])
         self.threshold_Phi_func = 5
 
     def gradient_filter(self, type):
-        if type == '0':
+        if type == "0":
             filter = [[0, 0, 0], [0, 1, 0], [0, 0, 0]]
 
-        if type == 'x':
-            filter = [[1, 0, -1], [2, 0, -2], [1, 0, -1]] / 4
-                        
-        if type == 'y':
-            filter = [[1, 2, 1], [0, 0, 0], [-1, -2, -1]] / 4
+        if type == "x":
+            filter = [[1 / 4, 0, -1 / 4], [2 / 4, 0, -2 / 4], [1 / 4, 0, -1 / 4]]
 
-        if type == 'xy':
-            filter = [[1, 0, -1], [0, 0, 0], [-1, 0, 1]] / 8
+        if type == "y":
+            filter = [[1 / 4, 2 / 4, 1 / 4], [0, 0, 0], [-1 / 4, -2 / 4, -1 / 4]]
 
-        if type == 'xx':
-            filter = [[1, 2, 1], [-2, -4, -2], [1, 2, 1]] / 8
+        if type == "xy":
+            filter = [[1 / 2, 0, -1 / 2], [0, 0, 0], [-1 / 2, 0, 1 / 2]]
 
-        if type == 'yy':
-            filter = [[1, -2, 1], [2, -4, 2], [1, -2, 1]] / 8
+        if type == "xx":
+            filter = [
+                [1 / 8, 2 / 8, 1 / 8],
+                [-2 / 8, -4 / 8, -2 / 8],
+                [1 / 8, 2 / 8, 1 / 8],
+            ]
+
+        if type == "yy":
+            filter = [
+                [1 / 8, -2 / 8, 1 / 8],
+                [2 / 8, -4 / 8, 2 / 8],
+                [1 / 8, -2 / 8, 1 / 8],
+            ]
         return np.array(filter)
 
     def omega(self, input):
@@ -156,7 +164,9 @@ class Optimizer:
             np.argmin([positive_values, negative_values, quadratic_values], axis=0),
             [positive_solution_x, negative_solution_x, quadratic_solution_x],
         )
-        #print(solution_x.size)
+        new_Psi_x=solution_x
+        # new_Psi_x = np.min(solution_x, self.Psi_x)
+        # print(solution_x.size)
 
         L_y = compute_gradient(self.L, "y")
         positive_solution_y = (
@@ -188,11 +198,13 @@ class Optimizer:
         solution_y = np.choose(
             np.argmin([positive_values, negative_values, quadratic_values], axis=0),
             [positive_solution_y, negative_solution_y, quadratic_solution_y],
+            self.Psi_y,
         )
-        return solution_x, solution_y
+        new_Psi_y =solution_y
+        # new_Psi_y = np.min(solution_y, self.Psi_y)
+        return new_Psi_x, new_Psi_y
 
     def update_Psi(self):
-        
         smth_bln = smooth_region(self.L, self.kernel_size, self.threshold_smooth_region)
         mask = 1 * smth_bln
         mask_3d = np.repeat(mask[:, :, np.newaxis], 3, axis=2)
@@ -200,9 +212,9 @@ class Optimizer:
         new_Psi_x[~smth_bln] = np.array(self.Psi_x[~smth_bln])
         new_Psi_y[~smth_bln] = np.array(self.Psi_y[~smth_bln])
 
-        #new_Psi_x[~mask_3d] = self.Psi_x[~mask_3d]
-        #new_Psi_y[~mask_3d] = self.Psi_y[~mask_3d]
-        #print(self.Psi_y[~mask_3d])
+        # new_Psi_x[~mask_3d] = self.Psi_x[~mask_3d]
+        # new_Psi_y[~mask_3d] = self.Psi_y[~mask_3d]
+        # print(self.Psi_y[~mask_3d])
         # new_Psi_x = np.zeros_like(self.Psi_x)
         # new_Psi_y = np.zeros_like(self.Psi_y)
 
@@ -261,14 +273,14 @@ class Optimizer:
                 + np.conjugate(self.sigma_star[2]) * F_psi_y[:, :, i]
             )
 
-            new_L[:, :, i] = fft.ifft2(
+            new_L[:, :, i] = np.abs(fft.ifft2(
                 numer / denom, (self.height, self.width), axes=(0, 1)
-            )
+            ))
         # image cropping
         st = (self.kernel_size - 1) // 2 - 1
         ed = self.I.shape[0]
         ed_ = self.I.shape[1]  # if image is not square
-        new_L = new_L[st:ed+st, st:ed_+st, :]
+        new_L = new_L[st : ed + st, st : ed_ + st, :]
         self.delta_L = new_L - self.L
         self.L = new_L
         print("delta_L:", self.delta_L.shape)
@@ -298,21 +310,21 @@ class Optimizer:
         Ay = toeplitz_matrix(
             compute_gradient(self.L, "y"), kernel_size=self.kernel_size
         )
-        #Axx = toeplitz_matrix(
+        # Axx = toeplitz_matrix(
         #    compute_gradient(self.L, "xx"), kernel_size=self.kernel_size
-        #)
-        #Axy = toeplitz_matrix(
+        # )
+        # Axy = toeplitz_matrix(
         #    compute_gradient(self.L, "xy"), kernel_size=self.kernel_size
-        #)
-        #Ayy = toeplitz_matrix(
+        # )
+        # Ayy = toeplitz_matrix(
         #    compute_gradient(self.L, "yy"), kernel_size=self.kernel_size
-        #)
+        # )
         B0 = self.I_flat
         Bx = self.I_grad_x_flat
         By = self.I_grad_y_flat
-        #Bxx = self.I_grad_xx_flat
-        #Bxy = self.I_grad_xy_flat
-        #Byy = self.I_grad_yy_flat
+        # Bxx = self.I_grad_xx_flat
+        # Bxy = self.I_grad_xy_flat
+        # Byy = self.I_grad_yy_flat
         print("Toeplitz construction Done")
         # print(A0.shape)
         # print(self.f.shape)
@@ -320,23 +332,23 @@ class Optimizer:
         # print(A0@self.f.flatten())
         # print((A0@self.f.flatten()).shape)
 
-        #left_mat = 0
-        #right_mat = 0
-        #for i in [(A0,B0),(Ax,Bx),(Ay,By)]:
+        # left_mat = 0
+        # right_mat = 0
+        # for i in [(A0,B0),(Ax,Bx),(Ay,By)]:
         #    for j in range(3):
         #        left_mat += i[0][:,:,j].T@i[0][:,:,j]
         #        right_mat += i[1][:,:,j].T@i[1][:,:,j]
-        #left_mat += np.identity(left_mat.shape[0])
-#
-        #self.f_flat = np.inv(left_mat)@right_mat
-        
+        # left_mat += np.identity(left_mat.shape[0])
+        #
+        # self.f_flat = np.inv(left_mat)@right_mat
+
         objective_fun = (
             lambda x: self.omega("0") * np.linalg.norm(A0 @ x - B0)
             + self.omega("x") * np.linalg.norm(Ax @ x - Bx)
             + self.omega("y") * np.linalg.norm(Ay @ x - By)
-            #+ self.omega("xx") * np.linalg.norm(Axx @ x - Bxx)
-            #+ self.omega("xy") * np.linalg.norm(Axy @ x - Bxy)
-            #+ self.omega("yy") * np.linalg.norm(Ayy @ x - Byy)
+            # + self.omega("xx") * np.linalg.norm(Axx @ x - Bxx)
+            # + self.omega("xy") * np.linalg.norm(Axy @ x - Bxy)
+            # + self.omega("yy") * np.linalg.norm(Ayy @ x - Byy)
             + np.sum(np.abs(x))
         )
         initial_guess = self.f.flatten()
@@ -352,43 +364,44 @@ class Optimizer:
         iteration = 0
         # Inner loop to optimize L
         plt.imshow(self.L.astype(np.uint8))
-        plt.savefig(f'./fig_save/fig_start.jpg')
-        plt.imshow(self.f,cmap='gray')
-        plt.savefig(f'./fig_save/kernel_start.jpg')
+        plt.savefig(f"./fig_save/fig_start.jpg")
+        plt.imshow(self.f, cmap="gray")
+        plt.savefig(f"./fig_save/kernel_start.jpg")
         while iteration < self.max_iterations:
             print(f"------- Iteraton {iteration} -------")
             rep = 0
             while True:
                 # Update Ψ and compute L
-                #norm_psi = 10000000
-                #norm_L = 100000000
+                # norm_psi = 10000000
+                # norm_L = 100000000
                 print("------Updating Psi-------")
-                #while(norm_psi > 1e-5):
+                # while(norm_psi > 1e-5):
                 self.update_Psi()
                 print("------Psi delta-------")
                 norm_psi = np.linalg.norm(self.delta_Psi_x) + np.linalg.norm(
-                self.delta_Psi_y)
+                    self.delta_Psi_y
+                )
                 print(norm_psi)
 
-                #while(norm_L > 1e-5):
+                # while(norm_L > 1e-5):
                 self.update_L()
                 norm_L = np.linalg.norm(self.delta_L)
                 print("------L delta-------")
                 print(norm_L)
 
                 plt.imshow(self.L.astype(np.uint8))
-                plt.savefig(f'./fig_save/fig{iteration}_{rep}.jpg')
-                rep += 1 
-                
-                if((norm_psi<1.e-1 and norm_L <2.e-1) or rep > 20):
+                plt.savefig(f"./fig_save/fig{iteration}_{rep}.jpg")
+                rep += 1
+
+                if (norm_psi < 1.0e-1 and norm_L < 2.0e-1) or rep > 20:
                     break
             # Update f
             self.update_f()
             print("--f delta--")
             norm_delta = np.linalg.norm(self.delta_f)
             print(norm_delta)
-            plt.imshow(self.f,cmap='gray')
-            plt.savefig(f'./fig_save/kernel_{iteration}.jpg')
+            plt.imshow(self.f, cmap="gray")
+            plt.savefig(f"./fig_save/kernel_{iteration}.jpg")
             if norm_delta < 1e-5:
                 break
 
@@ -412,5 +425,5 @@ a = Optimizer(img, 7, max_iterations=10)
 L, f = a.optimize()
 print(L)
 deblurred_image = L.astype(np.uint8)
-#plt.imshow(deblurred_image)
-#plt.show()
+# plt.imshow(deblurred_image)
+# plt.show()

@@ -28,6 +28,16 @@ class Kernel:
         kernel = kernel[:self.k,:self.k]
         return kernel
     
+    def Calculate_Reverse(self):
+        pad_size = int(self.k/2)
+        F_blur = np.fft.fft2(np.pad(self.blur,((pad_size,pad_size),(pad_size,pad_size))),(2000,2000))
+        F_sharp = np.fft.fft2(np.pad(self.sharp,((pad_size,pad_size),(pad_size,pad_size))),(2000,2000))
+
+        F_kernel = F_sharp / F_blur
+        kernel = np.fft.ifft2(F_kernel, (2000,2000))
+        kernel = kernel[:self.k,:self.k]
+        return kernel
+
     def reverse(self, kernel, sharp):
         # p = int((sharp.shape[0]-kernel.shape[0])/2)
         # kernel = np.pad(kernel, ((p,p),(p,p)), 'constant', constant_values = 0)
@@ -41,7 +51,7 @@ class Kernel:
         return blur
 
 
-blur_img, sharp_img = load_data("./data/test_dataset/blur.png", "./data/test_dataset/sharp.png")
+blur_img, sharp_img = load_data("./data/test_dataset/blur1.png","./data/test_dataset/sharp1.png")
 
 plt.subplot(1,2,1)
 plt.imshow(sharp_img, cmap = 'gray')
@@ -51,10 +61,13 @@ plt.savefig(f"./data/test_dataset/data.png")
 
 plt.show()
 
-a = Kernel(blur_img, sharp_img, 30)
+a = Kernel(blur_img, sharp_img, 35)
 kernel = a.Calculate()
+reverse_kernel = a.Calculate_Reverse()
 plt.imshow(np.abs(kernel), cmap = 'gray')
 plt.savefig(f"./data/test_dataset/kernel.png")
+plt.imshow(np.abs(reverse_kernel), cmap = 'gray')
+plt.savefig(f"./data/test_dataset/reverse_kernel.png")
 plt.show()
 
 blur = a.reverse(kernel, sharp_img)

@@ -3,8 +3,9 @@ import scipy
 from utils import compute_gradient
 from scipy.stats import multivariate_normal
 import cv2
+import matplotlib.pyplot as plt
 
-def smooth_region(img, kernel_size, threshold):
+def smooth_region(img, kernel_size, threshold,cnt):
     local_std = np.zeros(img.shape)
     std_kernel = np.ones((kernel_size, kernel_size))
     im = np.array(img, dtype = float)
@@ -15,6 +16,11 @@ def smooth_region(img, kernel_size, threshold):
     s2 = scipy.signal.convolve2d(im2, std_kernel, mode="same")
     ns = scipy.signal.convolve2d(ones, std_kernel, mode="same")
     local_std = np.sqrt((s2 - s**2 / ns) / ns)
+
+    show_img = local_std
+    show_img[show_img > threshold[0]] = 0
+    plt.imshow(show_img, cmap='gray')
+    plt.savefig(f"./smooth_reg/fig{cnt}.jpg")
         
     region = local_std < threshold[0]
 

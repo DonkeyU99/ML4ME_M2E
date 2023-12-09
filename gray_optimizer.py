@@ -22,15 +22,19 @@ class Optimizer:
         self.I_grad_yy_flat = compute_gradient(self.I, "yy").flatten().T
         self.kernel_size = kernel_size
 
-        self.height = 800
-        self.width = 400
-        self.F_I = fft2(self.I, (self.height, self.width), axes=(0, 1))
+        self.height = 1000
+        self.width = 1000
+
+        pad_size = int(kernel_size/2)
+        self.F_I = fft2(np.pad(self.I,((pad_size,pad_size),(pad_size,pad_size))), (self.height, self.width), axes=(0, 1))
 
         # initialize L, psi_X, psi_y
         self.L = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
         self.Psi_x = compute_gradient(self.L, "x")
         self.Psi_y = compute_gradient(self.L, "y")
-        self.f = np.diag((1/kernel_size)*np.full(kernel_size, 1))
+        #self.f = np.diag((1/kernel_size)*np.full(kernel_size, 1))
+        self.f = np.diag(np.full(kernel_size, 0))
+        self.f[self.kernel_size//2,self.kernel_size//2] = 1.
         self.f_flat = self.f.flatten()
 
         """
@@ -190,9 +194,9 @@ class Optimizer:
         )
         return solution_x, solution_y
 
-    def update_Psi(self):
+    def update_Psi(self,cnt):
         
-        smth_bln = smooth_region(self.L, self.kernel_size, self.threshold_smooth_region)
+        smth_bln = smooth_region(self.L, self.kernel_size, self.threshold_smooth_region,cnt)
         mask = 1 * smth_bln
         new_Psi_x, new_Psi_y = self.get_argmin_Psi(mask)
         new_Psi_x[~smth_bln] = np.array(self.Psi_x[~smth_bln])
@@ -262,11 +266,12 @@ class Optimizer:
         new_L = ifft2(
             numer / denom, (self.height, self.width), axes=(0, 1)
         )
+        new_L = new_L[:self.I.shape[0],:self.I.shape[1]]
         # image cropping
-        st = (self.kernel_size - 1) // 2 - 1
+        #st = (self.kernel_size - 1) // 2 - 1
         ed = self.I.shape[0]
-        ed_ = self.I.shape[1]  # if image is not square
-        new_L = new_L[st:ed+st, st:ed_+st]
+        #ed_ = self.I.shape[1]  # if image is not square
+        #new_L = new_L[st:ed+st, st:ed_+st]
         self.delta_L = new_L - self.L
         self.L = new_L.astype(np.uint8) 
         print("delta_L:", self.delta_L.shape)
@@ -362,7 +367,7 @@ class Optimizer:
                 #norm_L = 100000000
                 print("------Updating Psi-------")
                 #while(norm_psi > 1e-5):
-                self.update_Psi()
+                self.update_Psi(rep)
                 print("------Psi delta-------")
                 norm_psi = np.linalg.norm(self.delta_Psi_x) + np.linalg.norm(
                 self.delta_Psi_y)
@@ -401,7 +406,7 @@ class Optimizer:
 img = cv2.imread("data/toy_dataset/0_IPHONE-SE_M.JPG")
 
 # img = np.random.randint(0, 256, (28, 28, 3)).astype(float)
-img_resize = cv2.resize(img, (200,400))
+img_resize = cv2.resize(img, (400,400))
 a = Optimizer(img_resize, 11, max_iterations=10)
 # a.optimize()
 # update L & update psi 부분 확인

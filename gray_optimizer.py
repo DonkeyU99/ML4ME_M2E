@@ -1,5 +1,5 @@
 import numpy as np
-import numpy.fft as fft
+from scipy.fft import fft2, ifft2
 from utils import compute_gradient, Phi_func, toeplitz_matrix
 import scipy.signal
 from scipy.optimize import minimize
@@ -22,9 +22,9 @@ class Optimizer:
         self.I_grad_yy_flat = compute_gradient(self.I, "yy").flatten().T
         self.kernel_size = kernel_size
 
-        self.height = image.shape[0] + kernel_size - 1
-        self.width = image.shape[1] + kernel_size - 1
-        self.F_I = fft.fft2(self.I, (self.height, self.width), axes=(0, 1))
+        self.height = 800
+        self.width = 400
+        self.F_I = fft2(self.I, (self.height, self.width), axes=(0, 1))
 
         # initialize L, psi_X, psi_y
         self.L = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
@@ -62,7 +62,7 @@ class Optimizer:
         )
         self.sigma_star = np.array(
             [
-                fft.fft2(self.gradient_filter(grad), (self.height, self.width))
+                fft2(self.gradient_filter(grad), (self.height, self.width))
                 for grad in ["0", "x", "y", "xx", "xy", "yy"]
             ]
         )
@@ -105,9 +105,6 @@ class Optimizer:
         elif input == "xx" or input == "yy" or input == "xy":
             q = 2
         return 50 / 2**q
-
-    def conj_fftn(self, array, axes=(0, 1)):  # conj(FFT) operator
-        return np.conj(np.fft.fftn(array, (self.height, self.width), axes=axes))
 
     def target_equation_x(self, x, mask_3d):
         return (
@@ -242,14 +239,14 @@ class Optimizer:
 
     def update_L(self):
         print("start update L")
-        F_psi_x = fft.fft2(self.Psi_x, (self.height, self.width), axes=(0, 1))
-        F_psi_y = fft.fft2(self.Psi_y, (self.height, self.width), axes=(0, 1))
+        F_psi_x = fft2(self.Psi_x, (self.height, self.width), axes=(0, 1))
+        F_psi_y = fft2(self.Psi_y, (self.height, self.width), axes=(0, 1))
 
-        F_f = fft.fft2(
+        F_f = fft2(
             self.f, (self.height, self.width), axes=(0, 1)
         )  # 3x3 -> (i+f-1)x(i+f-1)
-        self.F_I  # 30x30x3(for img 28, kernel 3)
-        self.delta  # 3x3
+        # self.F_I  # 30x30x3(for img 28, kernel 3)
+        # self.delta  # 3x3
 
         denom = np.conjugate(F_f) * F_f * self.delta + self.gamma * (
             np.conjugate(self.sigma_star[1]) * self.sigma_star[1]
@@ -262,7 +259,7 @@ class Optimizer:
             + np.conjugate(self.sigma_star[2]) * F_psi_y
         )
 
-        new_L = fft.ifft2(
+        new_L = ifft2(
             numer / denom, (self.height, self.width), axes=(0, 1)
         )
         # image cropping
@@ -404,8 +401,8 @@ class Optimizer:
 img = cv2.imread("data/toy_dataset/0_IPHONE-SE_M.JPG")
 
 # img = np.random.randint(0, 256, (28, 28, 3)).astype(float)
-
-a = Optimizer(img, 7, max_iterations=10)
+img_resize = cv2.resize(img, (200,400))
+a = Optimizer(img_resize, 11, max_iterations=10)
 # a.optimize()
 # update L & update psi 부분 확인
 
